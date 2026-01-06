@@ -1163,9 +1163,9 @@ def probabilitybreak_multistep_substeps(
     output_data_probas_list = []
     data = data.where(~rows_with_zero, drop=True)
     for i in range(num_steps):
-        print(f"data shape start of step {i}", data.shape)
+        # print(f"data shape start of step {i}", data.shape)
         strain = new_strain_list[i]
-        print("number of runs through perfect break", i)
+        # print("number of runs through perfect break", i)
         data, data_proba = probabilitybreak_1step(
             data,
             n,
@@ -1273,9 +1273,9 @@ def perfectbreak_multistep(
     output_data_list = []
     data = data.where(~rows_with_zero, drop=True)
     for i in range(nb_steps):
-        print(f"data shape start of step {i}", data.shape)
+        # print(f"data shape start of step {i}", data.shape)
         strain = equiv_strains[i]
-        print("number of runs through perfect break", i)
+        print("Rolling step", i+1)
         data = perfectbreak_1step(
             data,
             n,
@@ -1331,9 +1331,9 @@ def probabilitybreak_multistep(
     output_data_probas_list = []
     data = data.where(~rows_with_zero, drop=True)
     for i in range(nb_steps):
-        print(f"data shape start of step {i}", data.shape)
+        # print(f"data shape start of step {i}", data.shape)
         strain = equiv_strains[i]
-        print("number of runs through probability break", i)
+        print("Rolling step", i+1)
         data, data_proba = probabilitybreak_1step(
             data,
             n,
@@ -1352,13 +1352,12 @@ def probabilitybreak_multistep(
 
 
 
-def multirun_full_code_probabreak(data,nb_steps,n,alpha,equiv_strains,nb_runs,weibull_modulus=1.2,reference_ecd=4,reference_stress=16,shear_al=76.5,return_intermediate=False,):
+def multirun_full_code_probabreak(data,nb_steps,alpha,equiv_strains,nb_runs,weibull_modulus=0.556,reference_ecd=6.9608,reference_stress=17.6373,shear_al=76.5,return_intermediate=True,):
     """Function to run the probability break function multiple times on the same starting data
 
     Args:
         data (xarray): An x array with one dimension properties and the other dimension particles
         nb_steps (int): number of break steps for each run
-        n (int): number of particles created by breaking a particle once
         alpha (float): smallest ECD a particle can have
         equiv_strains (list): list of the equivalent strain at every rolling step   
         nb_runs (int): number of times to 
@@ -1989,7 +1988,7 @@ def plot_sim(sim_data, sim_image_area, property, x_axis_text, title=" "):
 
 
 
-def multiplot(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+def multiplot_exp15_16(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
     """Function to plot experimental and simulated data together at multiple different steps
 
     Args:
@@ -2182,3 +2181,242 @@ def multiplot(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp
     # Show the plot
     plt.tight_layout()
     plt.show()
+
+
+
+
+
+def multiplot_sims(full_data, sim_image_area, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+    """Function to plot experimental and simulated data together at multiple different steps
+
+    Args:
+        sim_data (np.array): simulated data
+        sim_image_area (float): area of the simulation data
+        property (str): name of the property in the array to plot
+        x_axis_text (str): text to use as label of the x axis 
+        title (str, optional): Title for the graph. Defaults to " ".
+    """
+    x_lim = 10
+    y_lim = 10
+    # for center
+    if property == "orientation_deg":
+        x_lim = 90
+        y_lim = 0.002
+    if property == "smallest_dimension":
+        x_lim = 5.5
+        y_lim = 0.0009
+    if property == "smallest_dim_area":
+        x_lim = 8
+        y_lim = 0.0009
+    if property == "area":
+        x_lim = 40
+        y_lim = 0.003
+    if property == "largest_dimension":
+        x_lim = 40
+        y_lim = 0.0025
+    if property == "ECD":
+        x_lim = 13
+        y_lim = 0.003
+    if property == "Aspect Ratio":
+        x_lim = 30
+        y_lim = 0.005
+
+
+    # # For edge
+    # if property == "orientation_deg":
+    #     x_lim = 91
+    #     y_lim = 0.002
+    # if property == "smallest_dimension":
+    #     x_lim = 15
+    #     y_lim = 0.002
+    # if property == "area":
+    #     x_lim = 40
+    #     y_lim = 0.006
+    # if property == "smallest_dim_area":
+    #     x_lim = 15
+    #     y_lim = 0.004
+    # if property == "largest_dimension":
+    #     x_lim = 15
+    #     y_lim = 0.003
+    # if property == "ECD":
+    #     x_lim = 8
+    #     y_lim = 0.003
+    # if property == "Aspect Ratio":
+    #     x_lim = 30
+    #     y_lim = 0.005
+
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    axes = axes.flatten()
+
+    for ax, i in zip(axes, step_list):
+        sim_data = full_data[i-1]
+        sim_bin_edge, sim_hist = get_hist(sim_data, property)
+
+        sim_hist_norm = sim_hist / sim_image_area
+
+        if len(sim_bin_edge) > len(sim_hist_norm):
+            sim_bin_edge = sim_bin_edge[:-1]  
+        elif len(sim_hist_norm) > len(sim_bin_edge):
+            sim_hist_norm = sim_hist_norm[:-1]  
+
+
+        bin_width = sim_bin_edge[1] - sim_bin_edge[0]
+
+       
+        ax.plot(sim_bin_edge + 0.5*bin_width, sim_hist_norm, color="red", linewidth=1)
+        ax.set_xlim(0, x_lim)
+        ax.set_ylim(0, y_lim)
+        ax.set_xlabel(x_axis_text, fontsize=12)
+        ax.set_ylabel("Particle density #/μm²", fontsize=12)
+        ax.set_title(title, fontsize=18)
+    # Calculate and print statistics for simulated data
+        sim_mean = sim_data.sel(properties=property).mean()
+        sim_std = sim_data.sel(properties=property).std()
+    # sim_total_num = sim_data.sel(properties=property).sum()
+        sim_total_num = np.shape(sim_data)[0]/sim_image_area
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax.text(0.58, 0.97, f"Simulation data: \n Mean {sim_mean:.4f} \n Std {sim_std:.4f} \n Nb density {sim_total_num:.4f} ", transform=ax.transAxes, fontsize=10,
+            verticalalignment='top',   horizontalalignment='left', bbox=props)
+        ax.set_title(f"Step {i}")
+
+
+    print(f"Simulated data (property: {property}):")
+    print(f"  Average: {sim_mean:.4f}")
+    print(f"  Standard Deviation: {sim_std:.4f}")
+    print(f"  Total Number Density: {int(sim_total_num)}")
+    fig.suptitle(f'Evolution of the {title}', fontsize=16)
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
+
+
+# Import the edge data 
+def multiplot_exp16(full_data, sim_image_area, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+    """Function to plot experimental and simulated data together at multiple different steps
+
+    Args:
+        sim_data (np.array): simulated data
+        sim_image_area (float): area of the simulation data
+        property (str): name of the property in the array to plot
+        x_axis_text (str): text to use as label of the x axis 
+        title (str, optional): Title for the graph. Defaults to " ".
+    """
+    x_lim = 10
+    y_lim = 10
+    # for center
+    if property == "orientation_deg":
+        x_lim = 90
+        y_lim = 0.002
+    if property == "smallest_dimension":
+        x_lim = 5.5
+        y_lim = 0.0009
+    if property == "smallest_dim_area":
+        x_lim = 8
+        y_lim = 0.0009
+    if property == "area":
+        x_lim = 40
+        y_lim = 0.003
+    if property == "largest_dimension":
+        x_lim = 40
+        y_lim = 0.0025
+    if property == "ECD":
+        x_lim = 13
+        y_lim = 0.003
+    if property == "Aspect Ratio":
+        x_lim = 30
+        y_lim = 0.005
+
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    axes = axes.flatten()
+
+    for ax, i in zip(axes, step_list):
+        sim_data = full_data[i-1]
+        sim_bin_edge, sim_hist = fct.get_hist(sim_data, property)
+
+        sim_hist_norm = sim_hist / sim_image_area
+
+        if len(sim_bin_edge) > len(sim_hist_norm):
+            sim_bin_edge = sim_bin_edge[:-1]  
+        elif len(sim_hist_norm) > len(sim_bin_edge):
+            sim_hist_norm = sim_hist_norm[:-1]  
+
+
+        bin_width = sim_bin_edge[1] - sim_bin_edge[0]
+
+        if i==16:
+            exp_bin_edge, exp_hist = fct.get_hist(exp_data16, property)
+            exp_hist_norm = exp_hist / exp_area16
+
+            if len(exp_bin_edge) > len(exp_hist_norm):
+                exp_bin_edge = exp_bin_edge[:-1]  
+            elif len(exp_hist_norm) > len(exp_bin_edge):
+                exp_hist_norm = exp_hist_norm[:-1] 
+            if len(sim_bin_edge) > len(sim_hist_norm):
+                sim_bin_edge = sim_bin_edge[:-1]  
+            elif len(sim_hist_norm) > len(sim_bin_edge):
+                sim_hist_norm = sim_hist_norm[:-1]  
+
+            ax.set_xlim(0, x_lim)
+            ax.set_ylim(0, y_lim)
+            bin_width = sim_bin_edge[1] - sim_bin_edge[0]
+            ax.bar(
+                exp_bin_edge[:-1],
+                exp_hist_norm[:-1],
+                width=np.diff(exp_bin_edge),
+                align="edge",
+                edgecolor="black",
+                label= "experimental"
+            )
+            ax.plot(sim_bin_edge + 0.5*bin_width, sim_hist_norm, color="red", linewidth=1, label="simulation")
+            ax.set_xlabel(x_axis_text, fontsize=12)
+            ax.set_ylabel("Particle density #/μm²  ", fontsize=12)
+            exp_mean = exp_data16.sel(properties=property).mean()
+            exp_std = exp_data16.sel(properties=property).std()
+            # exp_total_num = exp_data.sel(properties=property).sum()
+            exp_total_num = (np.shape(exp_data16)[0])/exp_area16
+
+            # Calculate and print statistics for simulated data
+            sim_mean = sim_data.sel(properties=property).mean()
+            sim_std = sim_data.sel(properties=property).std()
+            # sim_total_num = sim_data.sel(properties=property).sum()
+            sim_total_num = np.shape(sim_data)[0]/sim_image_area
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+            ax.text(0.58, 0.97, f"Experimental data: \n Mean {exp_mean:.4f} \n Std {exp_std:.4f} \n Nb density {exp_total_num:.4f} \n Simulation data: \n Mean {sim_mean:.4f} \n Std {sim_std:.4f} \n Nb density {sim_total_num:.4f} ", transform=ax.transAxes, fontsize=10,
+                verticalalignment='top',   horizontalalignment='left', bbox=props)
+            ax.set_title(f"Step {i}")
+
+            ax.legend()
+        
+        else:
+            ax.plot(sim_bin_edge + 0.5*bin_width, sim_hist_norm, color="red", linewidth=1)
+            ax.set_xlim(0, x_lim)
+            ax.set_ylim(0, y_lim)
+            ax.set_xlabel(x_axis_text, fontsize=12)
+            ax.set_ylabel("Particle density #/μm²", fontsize=12)
+            ax.set_title(title, fontsize=18)
+
+        # Calculate and print statistics for simulated data
+            sim_mean = sim_data.sel(properties=property).mean()
+            sim_std = sim_data.sel(properties=property).std()
+        # sim_total_num = sim_data.sel(properties=property).sum()
+            sim_total_num = np.shape(sim_data)[0]/sim_image_area
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+            ax.text(0.58, 0.97, f"Simulation data: \n Mean {sim_mean:.4f} \n Std {sim_std:.4f} \n Nb density {sim_total_num:.4f} ", transform=ax.transAxes, fontsize=10,
+                verticalalignment='top',   horizontalalignment='left', bbox=props)
+            ax.set_title(f"Step {i}")
+
+
+    print(f"Simulated data (property: {property}):")
+    print(f"  Average: {sim_mean:.4f}")
+    print(f"  Standard Deviation: {sim_std:.4f}")
+    print(f"  Total Number Density: {int(sim_total_num)}")
+    # fig.suptitle(f'Evolution of the {title}', fontsize=16)
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
