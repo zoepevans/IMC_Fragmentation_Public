@@ -164,7 +164,7 @@ def identify_particle_properties(data, conversion_factor, split_value=0.5):
                 The intermetallic column is 1 if it is alpha intermetallic and 2 if it's a beta intermetallic
     """
     labeled_image, num_labels = sk.measure.label(data, connectivity=2, return_num=True)
-    print("lables", num_labels)
+    print("Number of particles", num_labels)
     properties = sk.measure.regionprops_table(
         labeled_image,
         properties=[
