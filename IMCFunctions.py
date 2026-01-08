@@ -94,58 +94,7 @@ def import_ecd_aspect_data(ecd_path, aspectratio_path):
     return data
 
 
-# def identify_particle_properties(data, conversion_factor, split_value=0.5):
-#     """Function to create an xarray with the properties of the particles in an image
 
-#     Args:
-#         data (np.array): Array corresponding to a binary image
-#         conversion_factor: Value to convert the pixels to um
-#         split_value (float): Optional. value between 0 and 1, that acts as the limit between the area ratio values that 
-#         correspond to the alpha intermetallic and the beta intermetallic. Defaults to 0.5
-
-#     Returns:
-#         xarray: An xarray with the dimensions particles and properties (coords, 'area', 'area_convex', 
-#                 'axis_major_length', 'axis_minor_length', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 
-#                 'centroid-0', 'centroid-1', 'ECD', 'orientation', 'perimeter', 'Aspect Ratio', 'area_ratio', 'intermetallic). 
-#                 The intermetallic column is 1 if it is alpha intermetallic and 2 if it's a beta intermetallic
-#     """
-#     labeled_image, num_labels = sk.measure.label(data, connectivity=2, return_num=True)
-#     print("lables", num_labels)
-#     properties = sk.measure.regionprops_table(
-#         labeled_image,
-#         properties=[
-#             "area",
-#             "area_convex",
-#             "axis_major_length",
-#             "axis_minor_length",
-#             "bbox",
-#             "centroid",
-#             "equivalent_diameter_area",
-#             "orientation",
-#             "perimeter", 
-#         ],
-#     )
-#     properties_df = pd.DataFrame.from_dict(properties)
-
-#     properties_df["area"]= properties_df["area"] / (conversion_factor * conversion_factor)
-#     properties_df["area_convex"] = properties_df["area_convex"] / (conversion_factor * conversion_factor)
-#     properties_df["axis_major_length"] = properties_df["axis_major_length"]/ conversion_factor
-#     properties_df["axis_minor_length"] = properties_df["axis_minor_length"] / conversion_factor
-#     properties_df["equivalent_diameter_area"] = properties_df["equivalent_diameter_area"] / conversion_factor
-#     properties_df["perimeter"] = properties_df["perimeter"]/ conversion_factor
-
-#     properties_df.rename(columns={"equivalent_diameter_area": "ECD"}, inplace=True)
-#     properties_df['Aspect Ratio'] = properties_df["axis_major_length"] / properties_df["axis_minor_length"]
-#     properties_df["area_ratio"] = properties_df["area"] / properties_df['area_convex']
-#     properties_df["intermetallic"] = np.where(properties_df["area_ratio"] < split_value, 1, 2)
-#     properties_df['orientation_deg'] =  90 - np.abs(properties_df['orientation']) * (180 / np.pi)
-#     properties_df["orientation_deg"] = np.where(properties_df["Aspect Ratio"] == 1, 0, properties_df["orientation_deg"])
-#     # properties_df = properties_df.dropna(axis=0)
-#     # properties_df = properties_df.reset_index(drop=True)
-
-#     properties_xarray = xr.DataArray(properties_df, dims=["particles", "properties"])
-#     properties_xarray = properties_xarray.where(np.isfinite(properties_xarray), np.nan)
-#     return properties_xarray, labeled_image
 
 
 def identify_particle_properties(data, conversion_factor, split_value=0.5):
@@ -238,6 +187,99 @@ def identify_particle_properties(data, conversion_factor, split_value=0.5):
     properties_xarray = xr.DataArray(properties_df, dims=["particles", "properties"])
     properties_xarray = properties_xarray.where(np.isfinite(properties_xarray), np.nan)
     return properties_xarray, labeled_image
+
+
+
+# def identify_particle_properties(data, conversion_factor, split_value=0.5):
+#     """Function to create an xarray with the properties of the particles in an image
+
+#     Args:
+#         data (np.array): Array corresponding to a binary image
+#         conversion_factor: Value to convert the pixels to um
+#         split_value (float): Optional. value between 0 and 1, that acts as the limit between the area ratio values that 
+#         correspond to the alpha intermetallic and the beta intermetallic. Defaults to 0.5
+
+#     Returns:
+#         xarray: An xarray with the dimensions particles and properties (coords, 'area', 'area_convex', 
+#                 'axis_major_length', 'axis_minor_length', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 
+#                 'centroid-0', 'centroid-1', 'ECD', 'orientation', 'perimeter', 'Aspect Ratio', 'area_ratio', 'intermetallic). 
+#                 The intermetallic column is 1 if it is alpha intermetallic and 2 if it's a beta intermetallic
+#     """
+#     labeled_image, num_labels = sk.measure.label(data, connectivity=2, return_num=True)
+#     print("lables", num_labels)
+#     properties = sk.measure.regionprops_table(
+#         labeled_image,
+#         properties=[
+#             "area",
+#             "area_convex",
+#             "axis_major_length",
+#             "axis_minor_length",
+#             "bbox",
+#             "centroid",
+#             "equivalent_diameter_area",
+#             "orientation",
+#             "perimeter", 
+#         ],
+#     )
+#     properties_df = pd.DataFrame.from_dict(properties)
+#     largest_dimensions= []
+#     for region in sk.measure.regionprops(labeled_image):
+#         convex_hull = sk.morphology.convex_hull_image(region.convex_image)
+
+#         if region.area < 5:  # Remove the particles that are too small
+#             largest_dimensions.append(np.nan)
+#             continue
+
+#         perimeter_coords = np.argwhere(convex_hull)
+
+#         if len(np.unique(perimeter_coords[:, 0])) == 1:  # All x values are the same
+#             largest_dimensions.append(np.nan)
+#             continue
+#         elif len(np.unique(perimeter_coords[:, 1])) == 1:  # All y values are the same
+#             largest_dimensions.append(np.nan)
+#             continue
+
+#         if len(perimeter_coords) > 1:
+#             perimeter_coords = np.column_stack(np.where(convex_hull))
+#             hull = scipy.spatial.ConvexHull(perimeter_coords)
+#             max_dist = 0
+#             for i in range(len(hull.vertices)):
+#                 for j in range(i + 1, len(hull.vertices)):
+#                     p1 = perimeter_coords[hull.vertices[i]]
+#                     p2 = perimeter_coords[hull.vertices[j]]
+#                     dist = np.linalg.norm(p1 - p2)
+#                     if dist > max_dist:
+#                         max_dist = dist
+
+#             # Print the largest dimension length
+#             # print(f"Largest Dimension Length: {max_dist:.2f}")
+#             largest_dimensions.append(max_dist)
+
+#     largest_dimensions = [x / conversion_factor for x in largest_dimensions]
+#     properties_df["largest_dimension"] = largest_dimensions
+
+
+#     properties_df["area"]= properties_df["area"] / (conversion_factor * conversion_factor)
+#     properties_df["smallest_dim_area"] = properties_df["area"]/properties_df["largest_dimension"]
+#     properties_df["area_convex"] = properties_df["area_convex"] / (conversion_factor * conversion_factor)
+#     properties_df["axis_major_length"] = properties_df["axis_major_length"]/ conversion_factor
+#     properties_df["axis_minor_length"] = properties_df["axis_minor_length"] / conversion_factor
+#     properties_df["equivalent_diameter_area"] = properties_df["equivalent_diameter_area"] / conversion_factor
+#     properties_df["perimeter"] = properties_df["perimeter"]/ conversion_factor
+
+#     properties_df.rename(columns={"equivalent_diameter_area": "ECD"}, inplace=True)
+#     properties_df['Aspect Ratio'] = properties_df["axis_major_length"] / properties_df["axis_minor_length"]
+#     properties_df["area_ratio"] = properties_df["area"] / properties_df['area_convex']
+#     properties_df["intermetallic"] = np.where(properties_df["area_ratio"] < split_value, 1, 2)
+#     properties_df['orientation_deg'] =  90 - np.abs(properties_df['orientation']) * (180 / np.pi)
+#     properties_df["ECD"] = np.where(properties_df["ECD"]< 0.1, np.nan, properties_df["ECD"])
+#     # properties_df["orientation_deg"] = np.where(properties_df["Aspect Ratio"] == 1, 0, properties_df["orientation_deg"])
+#     properties_df = properties_df.dropna(axis=0)
+#     properties_df = properties_df.reset_index(drop=True)
+
+#     properties_xarray = xr.DataArray(properties_df, dims=["particles", "properties"])
+#     properties_xarray = properties_xarray.where(np.isfinite(properties_xarray), np.nan)
+#     return properties_xarray, labeled_image
 
 
 def get_smallest_dimension(properties_data, image, conversion_factor):
@@ -2182,3 +2224,134 @@ def multiplot(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp
     # Show the plot
     plt.tight_layout()
     plt.show()
+
+
+
+# Import the edge data 
+def multiplot_V2(full_data, sim_image_area, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+    """Function to plot experimental and simulated data together at multiple different steps
+
+    Args:
+        sim_data (np.array): simulated data
+        sim_image_area (float): area of the simulation data
+        property (str): name of the property in the array to plot
+        x_axis_text (str): text to use as label of the x axis 
+        title (str, optional): Title for the graph. Defaults to " ".
+    """
+    x_lim = 10
+    y_lim = 10
+    # for center
+    if property == "orientation_deg":
+        x_lim = 90
+        y_lim = 0.002
+    if property == "smallest_dimension":
+        x_lim = 5.5
+        y_lim = 0.0009
+    if property == "smallest_dim_area":
+        x_lim = 8
+        y_lim = 0.0009
+    if property == "area":
+        x_lim = 40
+        y_lim = 0.003
+    if property == "largest_dimension":
+        x_lim = 40
+        y_lim = 0.0025
+    if property == "ECD":
+        x_lim = 13
+        y_lim = 0.003
+    if property == "Aspect Ratio":
+        x_lim = 30
+        y_lim = 0.005
+
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    axes = axes.flatten()
+
+    for ax, i in zip(axes, step_list):
+        sim_data = full_data[i-1]
+        sim_bin_edge, sim_hist = get_hist(sim_data, property)
+
+        sim_hist_norm = sim_hist / sim_image_area
+
+        if len(sim_bin_edge) > len(sim_hist_norm):
+            sim_bin_edge = sim_bin_edge[:-1]  
+        elif len(sim_hist_norm) > len(sim_bin_edge):
+            sim_hist_norm = sim_hist_norm[:-1]  
+
+
+        bin_width = sim_bin_edge[1] - sim_bin_edge[0]
+
+        if i==16:
+            exp_bin_edge, exp_hist = get_hist(exp_data16, property)
+            exp_hist_norm = exp_hist / exp_area16
+
+            if len(exp_bin_edge) > len(exp_hist_norm):
+                exp_bin_edge = exp_bin_edge[:-1]  
+            elif len(exp_hist_norm) > len(exp_bin_edge):
+                exp_hist_norm = exp_hist_norm[:-1] 
+            if len(sim_bin_edge) > len(sim_hist_norm):
+                sim_bin_edge = sim_bin_edge[:-1]  
+            elif len(sim_hist_norm) > len(sim_bin_edge):
+                sim_hist_norm = sim_hist_norm[:-1]  
+
+            ax.set_xlim(0, x_lim)
+            ax.set_ylim(0, y_lim)
+            bin_width = sim_bin_edge[1] - sim_bin_edge[0]
+            ax.bar(
+                exp_bin_edge[:-1],
+                exp_hist_norm[:-1],
+                width=np.diff(exp_bin_edge),
+                align="edge",
+                edgecolor="black",
+                label= "experimental"
+            )
+            ax.plot(sim_bin_edge + 0.5*bin_width, sim_hist_norm, color="red", linewidth=1, label="simulation")
+            ax.set_xlabel(x_axis_text, fontsize=12)
+            ax.set_ylabel("Particle density #/μm²  ", fontsize=12)
+            exp_mean = exp_data16.sel(properties=property).mean()
+            exp_std = exp_data16.sel(properties=property).std()
+            # exp_total_num = exp_data.sel(properties=property).sum()
+            exp_total_num = (np.shape(exp_data16)[0])/exp_area16
+
+            # Calculate and print statistics for simulated data
+            sim_mean = sim_data.sel(properties=property).mean()
+            sim_std = sim_data.sel(properties=property).std()
+            # sim_total_num = sim_data.sel(properties=property).sum()
+            sim_total_num = np.shape(sim_data)[0]/sim_image_area
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+            ax.text(0.58, 0.97, f"Experimental data: \n Mean {exp_mean:.4f} \n Std {exp_std:.4f} \n Nb density {exp_total_num:.4f} \n Simulation data: \n Mean {sim_mean:.4f} \n Std {sim_std:.4f} \n Nb density {sim_total_num:.4f} ", transform=ax.transAxes, fontsize=10,
+                verticalalignment='top',   horizontalalignment='left', bbox=props)
+            ax.set_title(f"Step {i}")
+
+            ax.legend()
+        
+        else:
+            ax.plot(sim_bin_edge + 0.5*bin_width, sim_hist_norm, color="red", linewidth=1)
+            ax.set_xlim(0, x_lim)
+            ax.set_ylim(0, y_lim)
+            ax.set_xlabel(x_axis_text, fontsize=12)
+            ax.set_ylabel("Particle density #/μm²", fontsize=12)
+            ax.set_title(title, fontsize=18)
+
+        # Calculate and print statistics for simulated data
+            sim_mean = sim_data.sel(properties=property).mean()
+            sim_std = sim_data.sel(properties=property).std()
+        # sim_total_num = sim_data.sel(properties=property).sum()
+            sim_total_num = np.shape(sim_data)[0]/sim_image_area
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+            ax.text(0.58, 0.97, f"Simulation data: \n Mean {sim_mean:.4f} \n Std {sim_std:.4f} \n Nb density {sim_total_num:.4f} ", transform=ax.transAxes, fontsize=10,
+                verticalalignment='top',   horizontalalignment='left', bbox=props)
+            ax.set_title(f"Step {i}")
+
+
+    print(f"Simulated data (property: {property}):")
+    print(f"  Average: {sim_mean:.4f}")
+    print(f"  Standard Deviation: {sim_std:.4f}")
+    print(f"  Total Number Density: {int(sim_total_num)}")
+    # fig.suptitle(f'Evolution of the {title}', fontsize=16)
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+
