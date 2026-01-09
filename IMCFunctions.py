@@ -552,14 +552,12 @@ def save_properties_csv(data, filename):
         filename (str): Name of the csv file to be saved, (name without extension)
     """
     data.name = "particle_properties"
-    data_df = data.to_dataframe()
-    df_temp = data_df.reset_index()
+    data_df = data.to_pandas()
+    # df_temp = data_df.reset_index()
 
 
-    print(df_temp)
-    properties_df = df_temp.pivot(index="particles", columns="properties", values= "particle_properties")
-    properties_df.reset_index(inplace= True)
-    properties_df.to_csv(f"CSV/{filename}.csv")
+    print(data_df)
+    data_df.to_csv(f"CSV/{filename}.csv")
 
 
 ###################################################################################################
@@ -2031,7 +2029,7 @@ def plot_sim(sim_data, sim_image_area, property, x_axis_text, title=" "):
 
 
 
-def multiplot(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+def multiplot_exp15_16(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
     """Function to plot experimental and simulated data together at multiple different steps
 
     Args:
@@ -2228,7 +2226,7 @@ def multiplot(full_data, sim_image_area, exp_data15, exp_area15, exp_data16, exp
 
 
 # Import the edge data 
-def multiplot_V2(full_data, sim_image_area, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
+def multiplot_exp16(full_data, sim_image_area, exp_data16, exp_area16, property, x_axis_text, title=" ", step_list=[1, 2, 5, 10, 15, 16]):
     """Function to plot experimental and simulated data together at multiple different steps
 
     Args:

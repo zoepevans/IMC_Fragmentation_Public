@@ -3,6 +3,7 @@ Model to simulate the fragmentation of the intermetallics duing the hot-rolling 
 
 ## Structure of the code and repository
 There are two main file in this code, the `IMCFunctions.py`file which contains the declaration of all the functions, and the `IMCFragmentation.ipynb`file which contains the execution of the code. 
+The function declerations are commented with the definition of the input parameters, their expected format, the role of the function and the resulting output. 
 
 The main steps in executing the code are:
 - Identify the particles present in the segmented image and calculate their properties. 
